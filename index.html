@@ -1,44 +1,151 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>QC Voice Iframe</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice QC</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0;padding:16px}
-.card{max-width:620px;margin:auto;background:#111827;border:1px solid #334155;border-radius:16px;padding:18px}
-h2{margin:0 0 5px;font-size:20px}.sub{font-size:13px;color:#94a3b8;line-height:1.5}
-.status{margin:14px 0;padding:10px 12px;border-radius:10px;background:#1e293b}
-.status.ok{background:#052e1b;color:#86efac}.status.err{background:#450a0a;color:#fca5a5}
-button{width:100%;padding:14px;border:0;border-radius:12px;background:#2563eb;color:#fff;font-weight:700;font-size:17px;cursor:pointer}
-button.stop{background:#dc2626}.send{margin-top:10px;background:#16a34a}.send:disabled{opacity:.4}
-.text{margin-top:12px;min-height:90px;padding:14px;background:#0b1220;border-radius:12px;line-height:1.5}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0f172a;font-family:Arial,sans-serif;color:#e2e8f0;padding:14px}
+  .card{width:100%;max-width:620px;background:#111827;border:1px solid #243047;border-radius:18px;padding:20px}
+  h1{margin:0 0 4px;font-size:22px}
+  .hint{font-size:12px;color:#94a3b8;margin-bottom:14px}
+  .status{padding:12px 14px;border-radius:10px;font-size:14px;margin-bottom:12px;background:#0b2a1a;color:#86efac}
+  .status.err{background:#450a0a;color:#fca5a5}
+  .status.listen{background:#3b0a0a;color:#fecaca}
+  button{width:100%;padding:14px;border:0;border-radius:10px;font-size:16px;font-weight:bold;color:#fff;cursor:pointer;margin-bottom:12px}
+  #btnStart{background:#2563eb}
+  #btnStart.on{background:#dc2626}
+  #btnSend{background:#16a34a}
+  #btnSend:disabled{opacity:.45;cursor:not-allowed}
+  .row{display:flex;gap:10px;margin-bottom:12px}
+  .row select{flex:1;padding:10px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:#e2e8f0;font-size:14px}
+  #result{width:100%;min-height:90px;padding:12px;border-radius:10px;border:1px solid #243047;background:#0b1220;color:#fff;font-size:16px;margin-bottom:12px;resize:vertical;font-family:inherit}
+  .small{font-size:11px;color:#64748b;text-align:center}
 </style>
 </head>
 <body>
 <div class="card">
-<h2>🎙️ Voice QC</h2>
-<div class="sub">Coba bicara: “Model X100 kanan scratch housing”</div>
-<div id="status" class="status">READY</div>
-<button id="btn" onclick="toggleVoice()">🎙️ Mulai Bicara</button>
-<div id="text" class="text">Belum ada suara.</div>
-<button id="send" class="send" onclick="sendResult()" disabled>↩️ Kirim ke Repair Man</button>
+  <h1>🎙️ Voice QC</h1>
+  <div class="hint">Coba bicara: “Model X100 kanan scratch housing 3 pcs shift A KAP 1”</div>
+
+  <div id="status" class="status">SIAP. Tekan Mulai Bicara.</div>
+
+  <div class="row">
+    <select id="lang">
+      <option value="id-ID">Bahasa: Indonesia (id-ID)</option>
+      <option value="en-US">Bahasa: Inggris (en-US)</option>
+    </select>
+  </div>
+
+  <button id="btnStart" type="button">🎙️ Mulai Bicara</button>
+
+  <textarea id="result" placeholder="Hasil suara muncul di sini. Boleh diedit sebelum dikirim."></textarea>
+
+  <button id="btnSend" type="button" disabled>↩️ Kirim ke Repair Man</button>
+  <div class="small" id="info"></div>
 </div>
+
 <script>
-let rec=null,listening=false,finalText='';
-const statusEl=document.getElementById('status'),btn=document.getElementById('btn'),textEl=document.getElementById('text'),send=document.getElementById('send');
-function toggleVoice(){listening?stopVoice():startVoice();}
-function startVoice(){
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!SR){statusEl.textContent='Browser tidak mendukung Speech Recognition. Pakai Chrome.';statusEl.className='status err';return;}
- finalText='';send.disabled=true;textEl.textContent='🎙️ Mendengarkan...';
- rec=new SR();rec.lang='id-ID';rec.continuous=false;rec.interimResults=true;rec.maxAlternatives=3;
- rec.onstart=()=>{listening=true;btn.textContent='⏹️ Berhenti';btn.classList.add('stop');statusEl.textContent='LISTENING';statusEl.className='status ok';};
- rec.onresult=(e)=>{let interim='',final='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0]?.transcript||'';e.results[i].isFinal?final+=t:interim+=t;}if(final)finalText+=final;textEl.textContent=(finalText||interim||'').trim()||'🎙️ Mendengarkan...';if(finalText.trim())send.disabled=false;};
- rec.onerror=(e)=>{listening=false;btn.textContent='🎙️ Mulai Bicara';btn.classList.remove('stop');statusEl.textContent=(e.error==='not-allowed'||e.error==='service-not-allowed')?'Microphone ditolak. Izinkan microphone untuk domain Voice QC.':'Voice error: '+(e.error||'unknown');statusEl.className='status err';};
- rec.onend=()=>{listening=false;btn.textContent='🎙️ Mulai Bicara';btn.classList.remove('stop');if(finalText.trim()){textEl.textContent=finalText.trim();send.disabled=false;statusEl.textContent='SUDAH TERBACA';statusEl.className='status ok';}};
- try{rec.start();}catch(e){statusEl.textContent='Coba tekan lagi.';statusEl.className='status err';}
-}
-function stopVoice(){if(rec){try{rec.stop()}catch(e){}}listening=false;}
-function sendResult(){const text=finalText.trim();if(!text)return;window.parent.postMessage({source:'QC_VOICE_IFRAME_V1',type:'QC_VOICE_RESULT',text:text},'*');statusEl.textContent='TERKIRIM KE REPAIR MAN';statusEl.className='status ok';send.disabled=true;}
+(function(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var $ = function(id){ return document.getElementById(id); };
+  var statusEl = $('status'), resultEl = $('result'), btnStart = $('btnStart'), btnSend = $('btnSend'), langEl = $('lang');
+  var rec = null, listening = false, finalText = '';
+
+  function setStatus(msg, cls){
+    statusEl.textContent = msg;
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  $('info').textContent = (window.opener ? 'Terhubung ke dashboard (popup).' : (window.parent !== window ? 'Mode iframe.' : 'Mode mandiri (tidak terhubung ke dashboard).'));
+
+  if(!SR){
+    setStatus('Browser tidak mendukung pengenalan suara. Gunakan Chrome atau Edge.', 'err');
+    btnStart.disabled = true;
+  }
+
+  resultEl.addEventListener('input', function(){
+    btnSend.disabled = !resultEl.value.trim();
+  });
+
+  btnStart.addEventListener('click', function(){
+    if(listening){ rec && rec.stop(); return; }
+    start();
+  });
+
+  function start(){
+    finalText = '';
+    rec = new SR();
+    rec.lang = langEl.value;
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.maxAlternatives = 1;
+
+    rec.onstart = function(){
+      listening = true;
+      btnStart.classList.add('on');
+      btnStart.textContent = '⏹️ Berhenti';
+      setStatus('🎙️ Mendengarkan...', 'listen');
+    };
+
+    rec.onresult = function(e){
+      var interim = '';
+      for(var i = e.resultIndex; i < e.results.length; i++){
+        var t = e.results[i][0].transcript;
+        if(e.results[i].isFinal) finalText += t + ' ';
+        else interim += t;
+      }
+      resultEl.value = (finalText + interim).trim();
+      btnSend.disabled = !resultEl.value.trim();
+    };
+
+    rec.onerror = function(e){
+      var map = {
+        'not-allowed': 'Microphone ditolak. Izinkan microphone untuk halaman ini (ikon gembok di address bar).',
+        'service-not-allowed': 'Layanan suara diblokir browser.',
+        'no-speech': 'Suara tidak terdeteksi. Coba lagi lebih dekat ke mikrofon.',
+        'audio-capture': 'Mikrofon tidak ditemukan.',
+        'network': 'Koneksi internet bermasalah (pengenalan suara butuh internet).'
+      };
+      setStatus(map[e.error] || ('Error: ' + e.error), 'err');
+    };
+
+    rec.onend = function(){
+      listening = false;
+      btnStart.classList.remove('on');
+      btnStart.textContent = '🎙️ Mulai Bicara';
+      if(resultEl.value.trim()){
+        setStatus('✅ SUDAH TERBACA. Periksa teks, lalu kirim.');
+        btnSend.disabled = false;
+      } else if(!statusEl.classList.contains('err')){
+        setStatus('Tidak ada suara terbaca. Coba lagi.', 'err');
+      }
+    };
+
+    try { rec.start(); } catch(err){ setStatus('Gagal memulai: ' + err.message, 'err'); }
+  }
+
+  btnSend.addEventListener('click', function(){
+    var text = resultEl.value.trim();
+    if(!text) return;
+
+    var target = window.opener || (window.parent !== window ? window.parent : null);
+    if(!target){
+      setStatus('Halaman ini dibuka mandiri, tidak ada dashboard yang menerima. Buka lewat tombol di dashboard.', 'err');
+      return;
+    }
+
+    target.postMessage({
+      source: 'QC_VOICE_IFRAME_V1',
+      type: 'QC_VOICE_RESULT',
+      text: text
+    }, '*');
+
+    setStatus('📨 Terkirim ke dashboard.');
+    if(window.opener){ setTimeout(function(){ window.close(); }, 600); }
+  });
+})();
 </script>
-</body></html>
+</body>
+</html>
