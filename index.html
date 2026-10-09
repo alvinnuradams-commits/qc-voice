@@ -18,16 +18,15 @@
   button:disabled{opacity:.45;cursor:not-allowed}
   #btnStart{background:#2563eb}
   #btnStart.on{background:#dc2626}
-  #btnMic{background:#475569}
   #btnSend{background:#16a34a}
-  .row{display:flex;gap:10px;margin-bottom:12px}
-  .row select{flex:1;padding:10px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:#e2e8f0;font-size:14px}
   #result{width:100%;min-height:110px;padding:12px;border-radius:10px;border:1px solid #243047;background:#0b1220;color:#fff;font-size:16px;margin-bottom:12px;resize:vertical;font-family:inherit;line-height:1.5}
   .diagnostic{display:none;margin:8px 0 12px;padding:12px;border-radius:10px;background:#0b1220;border:1px solid #243047;font-size:12px;color:#cbd5e1;line-height:1.55}
   .diagnostic.show{display:block}
   .diag-ok{color:#86efac}
   .diag-bad{color:#fca5a5}
   .small{font-size:11px;color:#64748b;text-align:center;line-height:1.5}
+  .history{padding:10px 12px;margin:0 0 12px;border:1px solid #334155;border-radius:10px;background:#0b1220;color:#cbd5e1;font-size:12px;line-height:1.5}
+  .history strong{color:#86efac}
   .pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#1e293b;margin:2px 2px 0 0}
 </style>
 </head>
@@ -35,20 +34,13 @@
 <div class="card">
   <h1>🎙️ Voice QC V4</h1>
   <div class="hint">
-    Contoh: “Model D52B, varian STD, problem scratch housing, jumlah NG lima, Shift A, KAP 1”
+    Ucapkan perlahan dan jelas: “Model D52B, tipe STD, RH, problem scratch housing, jumlah lima, faktor internal, PIC Budi, shift A, line KAP satu.”
   </div>
 
-  <div id="status" class="status">SIAP. Tekan “Cek Microphone” terlebih dahulu.</div>
+  <div id="status" class="status">SIAP. Tekan “Mulai Mendengarkan” dan izinkan akses microphone jika diminta.</div>
+  <div class="history"><strong>📚 Kamus Historis QC</strong><br>Istilah Model, Type, Problem, Faktor, PIC, Shift, dan Line dicocokkan dengan riwayat Matome Problem pada dashboard. Koneksi ke dashboard diperlukan agar data historis digunakan.</div>
 
-  <div class="row">
-    <select id="lang">
-      <option value="id-ID">Bahasa: Indonesia (id-ID)</option>
-      <option value="en-US">Bahasa: Inggris (en-US)</option>
-    </select>
-  </div>
-
-  <button id="btnMic" type="button">🔧 Cek Microphone</button>
-  <button id="btnStart" type="button" disabled>🎙️ Mulai Bicara</button>
+  <button id="btnStart" type="button" disabled>🎙️ Mulai Mendengarkan</button>
 
   <div id="diagnostic" class="diagnostic"></div>
 
@@ -69,9 +61,9 @@
   var statusEl = $('status');
   var resultEl = $('result');
   var btnStart = $('btnStart');
-  var btnMic = $('btnMic');
   var btnSend = $('btnSend');
-  var langEl = $('lang');
+  // Bahasa recognition dikunci ke Indonesia; pilihan bahasa tidak ditampilkan.
+  var speechLang = 'id-ID';
   var diagnosticEl = $('diagnostic');
   var infoEl = $('info');
 
@@ -111,24 +103,14 @@
     '<span class="pill">SpeechRecognition: ' + (SR ? 'ADA' : 'TIDAK ADA') + '</span>';
 
   if(!SR){
-    setStatus('Browser tidak mendukung Speech Recognition. Gunakan Chrome atau Edge.', 'err');
+    setStatus('Browser tidak mendukung Speech Recognition. Gunakan Chrome atau Edge terbaru.', 'err');
     btnStart.disabled = true;
-  }
+  } else { btnStart.disabled = false; }
 
   resultEl.addEventListener('input', function(){
     btnSend.disabled = !resultEl.value.trim();
   });
 
-  langEl.addEventListener('change', function(){
-    if(listening && rec){
-      try { rec.stop(); } catch(e) {}
-    }
-    micReady = false;
-    btnStart.disabled = true;
-    setStatus('Bahasa berubah. Tekan “Cek Microphone” lagi.', 'warn');
-  });
-
-  btnMic.addEventListener('click', checkMicrophone);
 
   async function checkMicrophone(){
     setDiagnostic('', false);
@@ -176,7 +158,7 @@
       micReady = true;
       btnStart.disabled = !SR;
 
-      setStatus('✅ Microphone OK. Sekarang tekan “Mulai Bicara”.');
+      setStatus('✅ Microphone siap. Mulai mendengarkan...');
 
       setDiagnostic(
         '<div class="diag-ok"><b>✓ MICROPHONE SIAP</b></div>' +
@@ -210,7 +192,7 @@
     }
   }
 
-  btnStart.addEventListener('click', function(){
+  btnStart.addEventListener('click', async function(){
     if(listening){
       if(rec){
         try { rec.stop(); } catch(e){}
@@ -219,8 +201,8 @@
     }
 
     if(!micReady){
-      setStatus('⚠️ Cek microphone terlebih dahulu.', 'warn');
-      return;
+      await checkMicrophone();
+      if(!micReady) return;
     }
 
     startRecognition();
@@ -238,7 +220,7 @@
     btnSend.disabled = true;
 
     rec = new SR();
-    rec.lang = langEl.value;
+    rec.lang = speechLang;
     rec.interimResults = true;
     rec.continuous = false;
     rec.maxAlternatives = 1;
@@ -288,7 +270,7 @@
       hadRecognitionError = true;
 
       var map = {
-        'not-allowed': 'Microphone / Speech Recognition ditolak oleh browser.',
+        'not-allowed': 'Izin microphone / Speech Recognition ditolak browser. Izinkan akses microphone lalu coba lagi.',
         'service-not-allowed': 'Layanan Speech Recognition tidak diizinkan browser.',
         'no-speech': 'Tidak ada ucapan yang terdeteksi.',
         'audio-capture': 'Audio capture gagal. Periksa microphone.',
@@ -316,7 +298,7 @@
     rec.onend = function(){
       listening = false;
       btnStart.classList.remove('on');
-      btnStart.textContent = '🎙️ Mulai Bicara';
+      btnStart.textContent = '🎙️ Mulai Mendengarkan';
       var text = resultEl.value.trim();
       if(text){
         btnSend.disabled = false;
@@ -347,7 +329,7 @@
         version: 'V5',
         type: 'QC_VOICE_RESULT',
         text: text,
-        language: langEl.value,
+        language: speechLang,
         auto: !!auto,
         timestamp: Date.now()
       }, '*');
