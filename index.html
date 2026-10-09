@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QC Voice - Matome Problem</title>
+<title>Voice QC V4</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0f172a;font-family:Arial,sans-serif;color:#e2e8f0;padding:14px}
@@ -33,9 +33,9 @@
 </head>
 <body>
 <div class="card">
-  <h1>🎙️ QC Voice — Matome Problem</h1>
+  <h1>🎙️ Voice QC V4</h1>
   <div class="hint">
-    Contoh: “Tanggal hari ini, model D52B, type STD, RH, detail problem scratch housing, total lima, faktor external, PIC Budi, Shift A, Line KAP 1”
+    Contoh: “Model D52B, varian STD, problem scratch housing, jumlah NG lima, Shift A, KAP 1”
   </div>
 
   <div id="status" class="status">SIAP. Tekan “Cek Microphone” terlebih dahulu.</div>
@@ -52,9 +52,9 @@
 
   <div id="diagnostic" class="diagnostic"></div>
 
-  <textarea id="result" placeholder="Hasil suara muncul di sini. Periksa dan edit dulu sebelum dikirim ke form Matome Problem."></textarea>
+  <textarea id="result" placeholder="Hasil suara muncul di sini. Boleh diedit sebelum dikirim."></textarea>
 
-  <button id="btnSend" type="button" disabled>↩️ Kirim ke Matome Problem</button>
+  <button id="btnSend" type="button" disabled>↩️ Kirim ke Repair Man</button>
 
   <div class="small" id="info"></div>
 </div>
@@ -320,7 +320,7 @@
       var text = resultEl.value.trim();
       if(text){
         btnSend.disabled = false;
-        setStatus('📝 Transkrip siap. Periksa dan edit teks, lalu tekan “Kirim ke Matome Problem”.');
+        sendToDashboard(text, true);
       } else if(!statusEl.classList.contains('err')){
         setStatus('Tidak ada suara terbaca. Coba lagi.', 'err');
       }
@@ -338,7 +338,7 @@
     if(!text) return false;
     var target = window.opener || (window.parent !== window ? window.parent : null);
     if(!target){
-      setStatus('❌ QC Voice harus dibuka dari dashboard Matome Problem.', 'err');
+      setStatus('❌ Voice QC harus dibuka dari dashboard Repair Man.', 'err');
       return false;
     }
     try{
@@ -351,7 +351,7 @@
         auto: !!auto,
         timestamp: Date.now()
       }, '*');
-      setStatus(auto ? '📨 Transkrip dikirim ke Matome Problem untuk mengisi preview. Belum disimpan.' : '📨 Transkrip dikirim ke Matome Problem. Periksa form; belum disimpan.');
+      setStatus(auto ? '📨 Transkrip terkirim. Dashboard akan parsing, validasi, lalu menyimpan otomatis jika semua kolom valid.' : '📨 Terkirim ke dashboard.');
       btnSend.disabled = true;
       if(window.opener){ setTimeout(function(){ try{window.close();}catch(e){} }, 900); }
       return true;
